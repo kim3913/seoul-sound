@@ -324,12 +324,6 @@ const AREA_MAP = {
   "culture_and_tourism": "문화관광"
 };
 
-  // '서울대공원' 등 특정 장소명을 지역 유형 옵션에서 제외하고 싶을 때
-// 수정 코드 (seoul grand park 및 서울대공원 제외):
-const districts = [...new Set(data.map(d => d.자치구))]
-  .filter(d => d && d !== "seoul grand park" && d !== "Seoul_Grand_Park" && d !== "서울대공원")
-  .sort();
-
   // 영문 자치구 코드/이름 한글 변환 매핑
 const DISTRICT_MAP = {
   "Gangnam-gu": "강남구", "Gangdong-gu": "강동구", "Gangbuk-gu": "강북구",
