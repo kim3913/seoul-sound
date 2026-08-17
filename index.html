@@ -440,9 +440,13 @@ function setupFilters(){
     .filter(a => a && a !== "undefined")
     .sort();
 
-  // 자치구가 아니거나 예외 항목(seoul grand park 등) 필터링하여 순수 자치구만 추출
+  // 대소문자나 언더바/공백 형태와 관계없이 'grand park' 또는 '대공원'이 포함되면 무조건 제외
   const districts = [...new Set(data.map(d => d.자치구))]
-    .filter(d => d && d !== "undefined" && !d.toLowerCase().includes("Seoul_Grand_Park") && d !== "서울대공원")
+    .filter(d => {
+      if (!d || d === "undefined") return false;
+      const lower = String(d).toLowerCase().replace(/_/g, " ");
+      return !lower.includes("grand park") && !lower.includes("대공원");
+    })
     .sort();
 
   fillSelect("area", areas);
@@ -452,6 +456,7 @@ function setupFilters(){
     document.getElementById(id).addEventListener("change", update);
   });
 }
+
 
 function selectedArea(){
   return document.getElementById("area").value;
