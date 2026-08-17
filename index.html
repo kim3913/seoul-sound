@@ -314,7 +314,7 @@ const LOCATION_FILE = "S-DoT_센서위치_축약.csv";
 const AREA_MAP = {
   "main_street": "주요도로",
   "roads_and_parks": "도로·주차장",
-  "도로·공원": "도로·주차장" 
+  "도로·공원": "도로·주차장", 
   "parks": "공원",
   "residential_area": "주거지역",
   "commercial_area": "상업지역",
@@ -339,7 +339,7 @@ const DISTRICT_MAP = {
 function isGrandPark(str) {
   if (!str) return false;
   const s = String(str).toLowerCase().replace(/_/g, " ").trim();
-  return s.includes("Seoul_Grand_Park") || s.includes("대공원");
+  return s.includes("seoul grand park") || s.includes("대공원");
 }
 
 function translateArea(val) {
