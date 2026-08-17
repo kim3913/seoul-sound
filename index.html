@@ -311,7 +311,7 @@ footer{
 const DATA_FILE = "S-DoT_소음_분석용_축약.csv";
 const LOCATION_FILE = "S-DoT_센서위치_축약.csv";
 
-// 영문 지역 카테고리 한글 변환 매핑
+// 영문 지역 카테고리 매핑
 const AREA_MAP = {
   "main_street": "주요도로",
   "roads_and_parks": "도로·공원",
@@ -324,7 +324,7 @@ const AREA_MAP = {
   "culture_and_tourism": "문화관광"
 };
 
-  // 영문 자치구 코드/이름 한글 변환 매핑
+// 영문 자치구 매핑
 const DISTRICT_MAP = {
   "Gangnam-gu": "강남구", "Gangdong-gu": "강동구", "Gangbuk-gu": "강북구",
   "Gangseo-gu": "강서구", "Gwanak-gu": "관악구", "Gwangjin-gu": "광진구",
@@ -336,16 +336,16 @@ const DISTRICT_MAP = {
   "Eunpyeong-gu": "은평구", "Jongno-gu": "종로구", "Jung-gu": "중구", "Jungnang-gu": "중랑구"
 };
 
-function translateArea(areaStr) {
-  if (!areaStr) return "기타";
-  const trimmed = String(areaStr).trim();
-  return AREA_MAP[trimmed] || trimmed;
+function translateArea(val) {
+  if (!val) return "";
+  const v = String(val).trim();
+  return AREA_MAP[v] || v;
 }
 
-function translateDistrict(districtStr) {
-  if (!districtStr) return "기타";
-  const trimmed = String(districtStr).trim();
-  return DISTRICT_MAP[trimmed] || trimmed;
+function translateDistrict(val) {
+  if (!val) return "";
+  const v = String(val).trim();
+  return DISTRICT_MAP[v] || v;
 }
 
 let data = [];
@@ -424,7 +424,10 @@ function periodMatch(hour, period){
 
 function fillSelect(id, values){
   const select = document.getElementById(id);
+  // 기존 동적 옵션만 지우고 '전체' 옵션 유지
+  select.innerHTML = select.options[0].outerHTML;
   values.forEach(v => {
+    if (!v) return;
     const option = document.createElement("option");
     option.value = v;
     option.textContent = v;
@@ -433,8 +436,14 @@ function fillSelect(id, values){
 }
 
 function setupFilters(){
-  const areas = [...new Set(data.map(d => d.지역))].filter(Boolean).sort();
-  const districts = [...new Set(data.map(d => d.자치구))].filter(Boolean).sort();
+  const areas = [...new Set(data.map(d => d.지역))]
+    .filter(a => a && a !== "undefined")
+    .sort();
+
+  // 자치구가 아니거나 예외 항목(seoul grand park 등) 필터링하여 순수 자치구만 추출
+  const districts = [...new Set(data.map(d => d.자치구))]
+    .filter(d => d && d !== "undefined" && !d.toLowerCase().includes("grand park") && d !== "서울대공원")
+    .sort();
 
   fillSelect("area", areas);
   fillSelect("district", districts);
@@ -735,13 +744,17 @@ async function start(){
       "소음 분석 데이터를 불러오는 중...";
 
     const rawData = await loadCSV(DATA_FILE);
-    
-    // 데이터 로드 시 지역유형과 자치구 명칭을 한글로 완전하게 변환
-    data = rawData.map(r => ({
-      ...r,
-      지역: translateArea(r.지역),
-      자치구: translateDistrict(r.자치구)
-    }));
+
+    // CSV 원본 열 이름 호환성 보장 및 안전한 한글 매핑
+    data = rawData.map(r => {
+      const areaVal = r.지역 || r.지역유형 || r.AREA || "";
+      const distVal = r.자치구 || r.구 || r.DISTRICT || "";
+      return {
+        ...r,
+        지역: translateArea(areaVal),
+        자치구: translateDistrict(distVal)
+      };
+    });
 
     document.getElementById("loading").textContent =
       "센서 위치 데이터를 불러오는 중...";
