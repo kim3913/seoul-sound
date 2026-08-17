@@ -311,10 +311,10 @@ footer{
 const DATA_FILE = "S-DoT_소음_분석용_축약.csv";
 const LOCATION_FILE = "S-DoT_센서위치_축약.csv";
 
-// 영문 지역 카테고리 매핑
 const AREA_MAP = {
   "main_street": "주요도로",
   "roads_and_parks": "도로·주차장",
+  "도로·공원": "도로·주차장" 
   "parks": "공원",
   "residential_area": "주거지역",
   "commercial_area": "상업지역",
@@ -324,7 +324,6 @@ const AREA_MAP = {
   "culture_and_tourism": "문화관광"
 };
 
-// 영문 자치구 매핑
 const DISTRICT_MAP = {
   "Gangnam-gu": "강남구", "Gangdong-gu": "강동구", "Gangbuk-gu": "강북구",
   "Gangseo-gu": "강서구", "Gwanak-gu": "관악구", "Gwangjin-gu": "광진구",
@@ -336,6 +335,13 @@ const DISTRICT_MAP = {
   "Eunpyeong-gu": "은평구", "Jongno-gu": "종로구", "Jung-gu": "중구", "Jungnang-gu": "중랑구"
 };
 
+// Grand Park 관련 값이 들어오면 완전히 차단
+function isGrandPark(str) {
+  if (!str) return false;
+  const s = String(str).toLowerCase().replace(/_/g, " ").trim();
+  return s.includes("Seoul_Grand_Park") || s.includes("대공원");
+}
+
 function translateArea(val) {
   if (!val) return "";
   const v = String(val).trim();
@@ -343,9 +349,9 @@ function translateArea(val) {
 }
 
 function translateDistrict(val) {
-  if (!val) return "";
+  if (!val || isGrandPark(val)) return "";
   const v = String(val).trim();
-  return DISTRICT_MAP[v] || v;
+  return DISTRICT_MAP[v] || (v.endsWith("구") ? v : "");
 }
 
 let data = [];
@@ -424,7 +430,6 @@ function periodMatch(hour, period){
 
 function fillSelect(id, values){
   const select = document.getElementById(id);
-  // 기존 동적 옵션만 지우고 '전체' 옵션 유지
   select.innerHTML = select.options[0].outerHTML;
   values.forEach(v => {
     if (!v) return;
@@ -437,16 +442,11 @@ function fillSelect(id, values){
 
 function setupFilters(){
   const areas = [...new Set(data.map(d => d.지역))]
-    .filter(a => a && a !== "undefined")
+    .filter(a => a && a !== "undefined" && a !== "")
     .sort();
 
-  // 대소문자나 언더바/공백 형태와 관계없이 'grand park' 또는 '대공원'이 포함되면 무조건 제외
   const districts = [...new Set(data.map(d => d.자치구))]
-    .filter(d => {
-      if (!d || d === "undefined") return false;
-      const lower = String(d).toLowerCase().replace(/_/g, " ");
-      return !lower.includes("grand park") && !lower.includes("대공원");
-    })
+    .filter(d => d && d !== "undefined" && d !== "" && !isGrandPark(d))
     .sort();
 
   fillSelect("area", areas);
@@ -456,7 +456,6 @@ function setupFilters(){
     document.getElementById(id).addEventListener("change", update);
   });
 }
-
 
 function selectedArea(){
   return document.getElementById("area").value;
@@ -564,10 +563,12 @@ function groupBy(rows, key){
     map.get(r[key]).push(r);
   });
 
-  return [...map.entries()].map(([name,rs]) => {
-    const s = summarize(rs);
-    return {name, mean:s.mean, n:s.n};
-  }).sort((a,b)=>b.mean-a.mean);
+  return [...map.entries()]
+    .filter(([name]) => name && !isGrandPark(name))
+    .map(([name,rs]) => {
+      const s = summarize(rs);
+      return {name, mean:s.mean, n:s.n};
+    }).sort((a,b)=>b.mean-a.mean);
 }
 
 function drawHourCharts(rows){
@@ -750,16 +751,18 @@ async function start(){
 
     const rawData = await loadCSV(DATA_FILE);
 
-    // CSV 원본 열 이름 호환성 보장 및 안전한 한글 매핑
-    data = rawData.map(r => {
-      const areaVal = r.지역 || r.지역유형 || r.AREA || "";
-      const distVal = r.자치구 || r.구 || r.DISTRICT || "";
-      return {
-        ...r,
-        지역: translateArea(areaVal),
-        자치구: translateDistrict(distVal)
-      };
-    });
+    // 원본 데이터 파싱 시 자치구 값이 Seoul_Grand_Park이면 미리 걸러냄
+    data = rawData
+      .map(r => {
+        const areaVal = r.지역 || r.지역유형 || r.AREA || "";
+        const distVal = r.자치구 || r.구 || r.DISTRICT || "";
+        return {
+          ...r,
+          지역: translateArea(areaVal),
+          자치구: translateDistrict(distVal)
+        };
+      })
+      .filter(r => r.자치구 !== "" && !isGrandPark(r.자치구));
 
     document.getElementById("loading").textContent =
       "센서 위치 데이터를 불러오는 중...";
