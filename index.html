@@ -314,7 +314,7 @@ const LOCATION_FILE = "S-DoT_센서위치_축약.csv";
 // 영문 지역 카테고리 매핑
 const AREA_MAP = {
   "main_street": "주요도로",
-  "roads_and_parks": "도로·공원",
+  "roads_and_parks": "도로·주차장",
   "parks": "공원",
   "residential_area": "주거지역",
   "commercial_area": "상업지역",
@@ -442,7 +442,7 @@ function setupFilters(){
 
   // 자치구가 아니거나 예외 항목(seoul grand park 등) 필터링하여 순수 자치구만 추출
   const districts = [...new Set(data.map(d => d.자치구))]
-    .filter(d => d && d !== "undefined" && !d.toLowerCase().includes("grand park") && d !== "서울대공원")
+    .filter(d => d && d !== "undefined" && !d.toLowerCase().includes("Seoul_Grand_Park") && d !== "서울대공원")
     .sort();
 
   fillSelect("area", areas);
